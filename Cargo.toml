@@ -6,6 +6,4 @@ edition = "2024"
 [dependencies]
 clap = { version = "4.6.0", features = ["derive"] }
 phf = { version = "0.13.1", features = ["macros"] }
-
-once_cell = "1.21.4"
 walkdir = "2.5.0"
