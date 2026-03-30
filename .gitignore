@@ -1,2 +1,5 @@
 /target
 /test_project
+
+#MACOS
+.DS_Store
