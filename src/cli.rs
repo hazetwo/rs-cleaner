@@ -28,16 +28,22 @@ pub struct Cli {
     )]
     pub depth: usize,
 
-    #[arg(short = 'y', long = "yes", help = "Automatically accept all prompts")]
+    #[arg(
+        short = 'y',
+        long = "yes",
+        default_value_t = false,
+        help = "Automatically accept all prompts"
+    )]
     pub auto_accept: bool,
 
     #[arg(
         short = 'p',
         long,
+        default_value_t = false,
         help = "Show what would be deleted without actually deleting"
     )]
     pub preview: bool,
 
-    #[arg(short, long)]
+    #[arg(short, long, default_value_t = false)]
     pub verbose: bool,
 }

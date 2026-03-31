@@ -1,4 +1,5 @@
 use clap::Parser;
+use dialoguer::Confirm;
 use phf::{Set, phf_set};
 use rs_cleaner::Cli;
 use std::error;
@@ -6,7 +7,6 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant, SystemTime};
 use walkdir::{DirEntry, WalkDir};
-
 const SECONDS_IN_DAY: u64 = 24 * 60 * 60;
 
 static PROJECT_TARGETS: Set<&'static str> = phf_set! {
@@ -236,6 +236,10 @@ fn remove_dirs(paths: &[PathBuf]) -> Result<(), Vec<CollectedError>> {
     }
 }
 
+fn format_errors() {
+    todo!()
+}
+
 fn main() -> Result<(), Box<dyn error::Error>> {
     let args = Cli::parse();
     let root = match args.path {
@@ -264,9 +268,26 @@ fn main() -> Result<(), Box<dyn error::Error>> {
         println!("{}", path.display());
     }
 
-    // todo
-    // if not preview then show dialog if wants to delete
-    // then show errors if any
+    if !args.verbose {}
+
+    if !args.auto_accept {
+        println!("Do you want to proceed with deletion?");
+        let proceed = Confirm::new()
+            .with_prompt("Continue?")
+            .default(true)
+            .interact()
+            .unwrap();
+
+        if proceed {
+            // here we deleting
+            println!("deleted all the file");
+        } else {
+            return Ok(());
+        }
+    } else {
+        println!("deleted all the file");
+        return Ok(());
+    }
 
     Ok(())
 }
