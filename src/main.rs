@@ -86,10 +86,23 @@ fn print_errors(errors: &[CollectedError], verbose: bool) {
     }
 }
 
-fn scan_progress_bar() -> ProgressBar {
+fn spinner_progress_bar() -> ProgressBar {
     let progress = ProgressBar::new_spinner();
     progress.enable_steady_tick(Duration::from_millis(100));
     progress.set_style(ProgressStyle::with_template("{spinner:.cyan} {msg}").unwrap());
+    progress
+}
+
+fn removal_progress_bar(total: usize) -> ProgressBar {
+    let progress = ProgressBar::new(total as u64);
+    progress
+        .set_style(
+            ProgressStyle::with_template(
+                "{bar:40.cyan/blue} {pos}/{len} {msg}",
+            )
+            .unwrap()
+            .progress_chars("=> "),
+        );
     progress
 }
 
@@ -264,6 +277,8 @@ struct RemovalResults {
 }
 
 fn remove_dirs(paths: &[PathBuf]) -> RemovalResults {
+    let progress = removal_progress_bar(paths.len());
+    progress.set_message("Removing directories");
     let mut errors = Vec::new();
     let mut deleted_count = 0;
 
@@ -273,7 +288,11 @@ fn remove_dirs(paths: &[PathBuf]) -> RemovalResults {
         } else {
             deleted_count += 1;
         }
+
+        progress.inc(1);
     }
+
+    progress.finish_and_clear();
 
     RemovalResults {
         deleted: deleted_count,
@@ -303,7 +322,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
     };
     let mut errors = Vec::new();
 
-    let progress = scan_progress_bar();
+    let progress = spinner_progress_bar();
     progress.set_message("Scanning projects...");
     let now = Instant::now();
     let project_results = collect_projects(&root, args.depth, args.older_than);
