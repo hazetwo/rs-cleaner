@@ -258,19 +258,6 @@ fn calculate_size(paths: &[PathBuf]) -> u64 {
     size
 }
 
-fn format_size(bytes: u64) -> String {
-    const MB: f64 = 1024.0 * 1024.0;
-    const GB: f64 = MB * 1024.0;
-
-    let bytes = bytes as f64;
-
-    if bytes >= GB {
-        format!("{bytes:.2} GB", bytes = bytes / GB)
-    } else {
-        format!("{bytes:.2} MB", bytes = bytes / MB)
-    }
-}
-
 fn remove_dirs(paths: &[PathBuf]) -> Result<(), Vec<CollectedError>> {
     let mut errors = Vec::new();
 
