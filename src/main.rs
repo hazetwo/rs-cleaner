@@ -95,14 +95,11 @@ fn spinner_progress_bar() -> ProgressBar {
 
 fn removal_progress_bar(total: usize) -> ProgressBar {
     let progress = ProgressBar::new(total as u64);
-    progress
-        .set_style(
-            ProgressStyle::with_template(
-                "{bar:40.cyan/blue} {pos}/{len} {msg}",
-            )
+    progress.set_style(
+        ProgressStyle::with_template("{bar:40.cyan/blue} {pos}/{len} {msg}")
             .unwrap()
             .progress_chars("=> "),
-        );
+    );
     progress
 }
 
@@ -335,6 +332,10 @@ fn main() -> Result<(), Box<dyn error::Error>> {
         errors.extend(target_results.errors);
     }
 
+    // Removing duplicates
+    paths_to_remove.sort();
+    paths_to_remove.dedup();
+
     progress.set_message("Calculating size...");
     let size = calculate_size(&paths_to_remove);
     let elapsed = now.elapsed();
@@ -357,6 +358,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
 
     // If preview return early
     if args.preview {
+        println!("Preview mode: no directories were removed.");
         return Ok(());
     }
 
