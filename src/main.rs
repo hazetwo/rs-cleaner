@@ -1,5 +1,6 @@
 use clap::Parser;
 use dialoguer::Confirm;
+use indicatif::{HumanBytes, HumanDuration, ProgressBar, ProgressStyle};
 use phf::{Set, phf_set};
 use rs_cleaner::Cli;
 use std::error;
@@ -83,6 +84,13 @@ fn print_errors(errors: &[CollectedError], verbose: bool) {
         println!("Found {} errors.", errors.len());
         println!("Run with --verbose to inspect them.");
     }
+}
+
+fn scan_progress_bar() -> ProgressBar {
+    let progress = ProgressBar::new_spinner();
+    progress.enable_steady_tick(Duration::from_millis(100));
+    progress.set_style(ProgressStyle::with_template("{spinner:.cyan} {msg}").unwrap());
+    progress
 }
 
 fn collect_projects(dir: &Path, depth: usize, days: Option<u64>) -> CollectResults {
@@ -276,27 +284,32 @@ fn main() -> Result<(), Box<dyn error::Error>> {
     };
     let mut errors = Vec::new();
 
+    let progress = scan_progress_bar();
+    progress.set_message("Scanning projects...");
     let now = Instant::now();
     let project_results = collect_projects(&root, args.depth, args.older_than);
     let mut paths_to_remove = Vec::new();
     errors.extend(project_results.errors);
+    progress.set_message("Collecting directories to remove...");
     for project_path in &project_results.paths {
         let target_results = find_target_to_remove(project_path);
         paths_to_remove.extend(target_results.paths);
         errors.extend(target_results.errors);
     }
 
+    progress.set_message("Calculating size...");
     let size = calculate_size(&paths_to_remove);
     let elapsed = now.elapsed();
+    progress.finish_and_clear();
 
-    println!("Elapsed: {:.2} ms", elapsed.as_secs_f64() * 1000.0);
+    println!("Elapsed: {}", HumanDuration(elapsed));
     print_errors(&errors, args.verbose);
 
     if paths_to_remove.is_empty() {
         println!("No directories to remove were found.");
         return Ok(());
     } else {
-        println!("Total size: {}", format_size(size));
+        println!("Total size: {}", HumanBytes(size));
         println!("Found {} directories to remove", paths_to_remove.len());
     }
 
