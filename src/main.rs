@@ -258,19 +258,40 @@ fn calculate_size(paths: &[PathBuf]) -> u64 {
     size
 }
 
-fn remove_dirs(paths: &[PathBuf]) -> Result<(), Vec<CollectedError>> {
+struct RemovalResults {
+    deleted: usize,
+    errors: Vec<CollectedError>,
+}
+
+fn remove_dirs(paths: &[PathBuf]) -> RemovalResults {
     let mut errors = Vec::new();
+    let mut deleted_count = 0;
 
     for path in paths {
         if let Err(err) = fs::remove_dir_all(path) {
             errors.push(CollectedError::io(Some(path.clone()), err));
+        } else {
+            deleted_count += 1;
         }
     }
 
-    if errors.is_empty() {
-        Ok(())
+    RemovalResults {
+        deleted: deleted_count,
+        errors,
+    }
+}
+
+fn run_remove(paths: &[PathBuf]) {
+    let removal_res = remove_dirs(&paths);
+    if !removal_res.errors.is_empty() {
+        println!(
+            "Removed {} directories, {} failed.",
+            removal_res.deleted,
+            removal_res.errors.len()
+        );
+        print_errors(&removal_res.errors, true);
     } else {
-        Err(errors)
+        println!("Successfully removed {} directories.", removal_res.deleted);
     }
 }
 
@@ -315,6 +336,11 @@ fn main() -> Result<(), Box<dyn error::Error>> {
         println!("{}", path.display());
     }
 
+    // If preview return early
+    if args.preview {
+        return Ok(());
+    }
+
     let should_prompt = !args.auto_accept || !errors.is_empty();
 
     if should_prompt {
@@ -331,11 +357,10 @@ fn main() -> Result<(), Box<dyn error::Error>> {
             .unwrap();
 
         if proceed {
-            // here we deleting
-            println!("deleted all the file");
+            run_remove(&paths_to_remove)
         }
     } else {
-        println!("deleted all the file");
+        run_remove(&paths_to_remove)
     }
 
     Ok(())
