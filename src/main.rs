@@ -26,30 +26,62 @@ struct CollectResults {
 }
 
 #[derive(Debug)]
-struct CollectedError {
-    path: Option<PathBuf>,
-    kind: PathCollectionError,
+enum PathCollectionError {
+    Scan,
+    Access,
 }
 
 #[derive(Debug)]
-enum PathCollectionError {
-    WalkDir(walkdir::Error),
-    Io(std::io::Error),
+struct CollectedError {
+    path: Option<PathBuf>,
+    kind: PathCollectionError,
+    message: String,
 }
 
 impl CollectedError {
     fn walkdir(path: Option<PathBuf>, err: walkdir::Error) -> Self {
         Self {
             path,
-            kind: PathCollectionError::WalkDir(err),
+            kind: PathCollectionError::Scan,
+            message: err.to_string(),
         }
     }
 
     fn io(path: Option<PathBuf>, err: std::io::Error) -> Self {
         Self {
             path,
-            kind: PathCollectionError::Io(err),
+            kind: PathCollectionError::Access,
+            message: err.to_string(),
         }
+    }
+}
+
+fn format_error(error: &CollectedError) -> String {
+    let path = error
+        .path
+        .as_ref()
+        .map(|path| path.display().to_string())
+        .unwrap_or_else(|| "<unknown path>".to_string());
+
+    match error.kind {
+        PathCollectionError::Scan => format!("Failed to scan {path}: {}", error.message),
+        PathCollectionError::Access => format!("Failed to access {path}: {}", error.message),
+    }
+}
+
+fn print_errors(errors: &[CollectedError], verbose: bool) {
+    if errors.is_empty() {
+        return;
+    }
+
+    if verbose {
+        println!("Errors found:");
+        for (i, err) in errors.iter().enumerate() {
+            println!("{}. {}", i + 1, format_error(err));
+        }
+    } else {
+        println!("Found {} errors.", errors.len());
+        println!("Run with --verbose to inspect them.");
     }
 }
 
@@ -236,10 +268,6 @@ fn remove_dirs(paths: &[PathBuf]) -> Result<(), Vec<CollectedError>> {
     }
 }
 
-fn format_errors() {
-    todo!()
-}
-
 fn main() -> Result<(), Box<dyn error::Error>> {
     let args = Cli::parse();
     let root = match args.path {
@@ -261,19 +289,33 @@ fn main() -> Result<(), Box<dyn error::Error>> {
     let size = calculate_size(&paths_to_remove);
     let elapsed = now.elapsed();
 
-    println!("Found {} directories to remove", paths_to_remove.len());
-    println!("Total size: {}", format_size(size));
     println!("Elapsed: {:.2} ms", elapsed.as_secs_f64() * 1000.0);
+    print_errors(&errors, args.verbose);
+
+    if paths_to_remove.is_empty() {
+        println!("No directories to remove were found.");
+        return Ok(());
+    } else {
+        println!("Total size: {}", format_size(size));
+        println!("Found {} directories to remove", paths_to_remove.len());
+    }
 
     for path in &paths_to_remove {
         println!("{}", path.display());
     }
 
-    if !args.auto_accept {
-        println!("Do you want to proceed with deletion?");
+    let should_prompt = !args.auto_accept || !errors.is_empty();
+
+    if should_prompt {
+        let (prompt, default) = if errors.is_empty() {
+            ("Do you want to proceed with deletion?", true)
+        } else {
+            ("Errors were found. Do you want to proceed anyway?", false)
+        };
+
         let proceed = Confirm::new()
-            .with_prompt("Continue?")
-            .default(true)
+            .with_prompt(prompt)
+            .default(default)
             .interact()
             .unwrap();
 
@@ -283,19 +325,6 @@ fn main() -> Result<(), Box<dyn error::Error>> {
         }
     } else {
         println!("deleted all the file");
-    }
-
-    if !args.verbose {
-        println!("Found {} errors", errors.iter().count())
-    } else {
-        println!("Errors found: ");
-        for err in errors {
-            //format error
-            match err.kind {
-                PathCollectionError::WalkDir(err) => println!("walkdir error"),
-                PathCollectionError::Io(err) => println!("Io error"),
-            }
-        }
     }
 
     Ok(())
