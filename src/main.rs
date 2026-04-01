@@ -246,15 +246,16 @@ fn main() -> Result<(), Box<dyn error::Error>> {
         Some(path) => path,
         None => std::env::current_dir()?,
     };
+    let mut errors = Vec::new();
 
     let now = Instant::now();
-    let mut project_results = collect_projects(&root, args.depth, args.older_than);
+    let project_results = collect_projects(&root, args.depth, args.older_than);
     let mut paths_to_remove = Vec::new();
-
+    errors.extend(project_results.errors);
     for project_path in &project_results.paths {
         let target_results = find_target_to_remove(project_path);
         paths_to_remove.extend(target_results.paths);
-        project_results.errors.extend(target_results.errors);
+        errors.extend(target_results.errors);
     }
 
     let size = calculate_size(&paths_to_remove);
@@ -268,8 +269,6 @@ fn main() -> Result<(), Box<dyn error::Error>> {
         println!("{}", path.display());
     }
 
-    if !args.verbose {}
-
     if !args.auto_accept {
         println!("Do you want to proceed with deletion?");
         let proceed = Confirm::new()
@@ -281,12 +280,22 @@ fn main() -> Result<(), Box<dyn error::Error>> {
         if proceed {
             // here we deleting
             println!("deleted all the file");
-        } else {
-            return Ok(());
         }
     } else {
         println!("deleted all the file");
-        return Ok(());
+    }
+
+    if !args.verbose {
+        println!("Found {} errors", errors.iter().count())
+    } else {
+        println!("Errors found: ");
+        for err in errors {
+            //format error
+            match err.kind {
+                PathCollectionError::WalkDir(err) => println!("walkdir error"),
+                PathCollectionError::Io(err) => println!("Io error"),
+            }
+        }
     }
 
     Ok(())
