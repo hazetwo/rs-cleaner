@@ -211,7 +211,18 @@ fn find_youngest_file(path: &Path) -> (Option<SystemTime>, Vec<CollectedError>) 
             continue;
         }
 
-        let modified = match fs::metadata(entry.path()).and_then(|metadata| metadata.modified()) {
+        let metadata = match entry.metadata() {
+            Ok(metadata) => metadata,
+            Err(err) => {
+                errors.push(CollectedError::walkdir(
+                    Some(entry.path().to_path_buf()),
+                    err,
+                ));
+                continue;
+            }
+        };
+
+        let modified = match metadata.modified() {
             Ok(time) => time,
             Err(err) => {
                 errors.push(CollectedError::io(Some(entry.path().to_path_buf()), err));
