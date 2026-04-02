@@ -318,7 +318,6 @@ fn main() -> Result<(), Box<dyn error::Error>> {
         None => std::env::current_dir()?,
     };
     let mut errors = Vec::new();
-
     let progress = spinner_progress_bar();
     progress.set_message("Scanning projects...");
     let now = Instant::now();
@@ -336,19 +335,27 @@ fn main() -> Result<(), Box<dyn error::Error>> {
     paths_to_remove.sort();
     paths_to_remove.dedup();
 
-    progress.set_message("Calculating size...");
-    let size = calculate_size(&paths_to_remove);
+    let size = if args.size {
+        progress.set_message("Calculating size...");
+        Some(calculate_size(&paths_to_remove))
+    } else {
+        None
+    };
     let elapsed = now.elapsed();
     progress.finish_and_clear();
 
     println!("Elapsed: {}", HumanDuration(elapsed));
+
     print_errors(&errors, args.verbose);
 
     if paths_to_remove.is_empty() {
         println!("No directories to remove were found.");
         return Ok(());
     } else {
-        println!("Total size: {}", HumanBytes(size));
+        match size {
+            Some(size) => println!("Total size: {}", HumanBytes(size)),
+            None => {}
+        }
         println!("Found {} directories to remove", paths_to_remove.len());
     }
 

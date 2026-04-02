@@ -44,6 +44,9 @@ pub struct Cli {
     )]
     pub preview: bool,
 
+    #[arg(short = 's', long, default_value_t = false)]
+    pub size: bool,
+
     #[arg(short, long, default_value_t = false)]
     pub verbose: bool,
 }
