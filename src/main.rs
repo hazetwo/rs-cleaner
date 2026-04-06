@@ -381,11 +381,11 @@ fn main() -> Result<(), Box<dyn error::Error>> {
         let proceed = Confirm::new()
             .with_prompt(prompt)
             .default(default)
-            .interact()
-            .unwrap();
+            .interact_opt()?;
 
-        if proceed {
-            run_remove(&paths_to_remove)
+        match proceed {
+            Some(true) => {run_remove(&paths_to_remove);},
+            _ => {println!("Aborting removal.");},
         }
     } else {
         run_remove(&paths_to_remove)
