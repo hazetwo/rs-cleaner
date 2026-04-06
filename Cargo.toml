@@ -2,6 +2,10 @@
 name = "rs-cleaner"
 version = "0.1.0"
 edition = "2024"
+description = "Lightweight command-line tool for cleaning up build artifacts and unused dependencies across projects"
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/hazetwo/rs-cleaner"
 
 [dependencies]
 clap = { version = "4.6.0", features = ["derive"] }
